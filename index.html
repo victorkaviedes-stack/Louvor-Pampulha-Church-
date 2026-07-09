@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Louvor Pampulha</title>
+<meta name="theme-color" content="#14120F" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- Tela de senha -->
+<div id="gate">
+  <div class="gate-eyebrow">Ministério de Louvor</div>
+  <h1 class="gate-title">Igreja Pampulha</h1>
+  <p class="gate-sub">Repertório, cifras e escalas da equipe. Acesso restrito.</p>
+  <form id="gateForm" class="gate-form">
+    <input id="gateInput" type="password" placeholder="Senha da equipe" autocomplete="off" />
+    <button type="submit">Entrar</button>
+  </form>
+  <p id="gateError" class="gate-error"></p>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-row">
+      <div>
+        <div class="brand-eyebrow" id="churchName">Igreja Pampulha</div>
+        <h1 class="brand-title" id="ministryName">Ministério de Louvor</h1>
+      </div>
+      <button id="installBtn" class="hidden">Instalar app</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-view="view-repertorio">Repertório</button>
+      <button class="tab-btn" data-view="view-escalas">Escalas</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Repertório -->
+    <section id="view-repertorio" class="view active">
+      <div class="search-row">
+        <input id="searchInput" type="text" placeholder="Buscar música ou artista" />
+      </div>
+      <div class="chip-row" id="chipRow"></div>
+      <div id="songList"></div>
+    </section>
+
+    <!-- Escalas -->
+    <section id="view-escalas" class="view">
+      <div id="scheduleList"></div>
+    </section>
+
+    <!-- Detalhe -->
+    <section id="view-detail" class="view">
+      <div class="detail-header">
+        <button id="backBtn" class="back-btn">‹ Repertório</button>
+      </div>
+      <h2 class="detail-title" id="detailTitle"></h2>
+      <p class="detail-artist" id="detailArtist"></p>
+
+      <div class="control-bar">
+        <div class="control-group">
+          <span class="control-label">Tom</span>
+          <button class="stepper-btn" id="tomMinus">–</button>
+          <span class="stepper-value" id="tomValue"></span>
+          <button class="stepper-btn" id="tomPlus">+</button>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Fonte</span>
+          <button class="stepper-btn" id="fontMinus">–</button>
+          <span class="stepper-value" id="fontValue"></span>
+          <button class="stepper-btn" id="fontPlus">+</button>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Auto</span>
+          <button class="autoscroll-btn" id="autoscrollBtn">▶</button>
+        </div>
+      </div>
+
+      <div class="cifra-card">
+        <div class="cifra-body" id="cifraBody"></div>
+      </div>
+
+      <button id="ytToggle" class="yt-toggle hidden"></button>
+      <div id="ytWrap" class="yt-wrap hidden"></div>
+    </section>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
