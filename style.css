@@ -534,6 +534,81 @@ main { flex: 1; padding: 18px 20px 40px; }
   margin: 18px 0 8px;
 }
 
+/* ---------- Formulário Nova cifra ---------- */
+.field-label {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-on-stage);
+  margin: 16px 0 6px;
+}
+.field-label:first-of-type { margin-top: 20px; }
+
+.field-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(232,163,61,0.2);
+  background: var(--stage-2);
+  color: var(--paper);
+  font-size: 15px;
+}
+.field-input:focus { outline: none; border-color: var(--amber); }
+
+.draft-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--stage);
+  background: var(--amber);
+  padding: 2px 7px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.draft-note {
+  font-size: 12.5px;
+  color: var(--muted-on-stage);
+  background: rgba(232,163,61,0.08);
+  border: 1px solid rgba(232,163,61,0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.danger-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(232,132,107,0.4);
+  background: transparent;
+  color: #E8846B;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+/* ---------- Botão flutuante ---------- */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 26px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  background: var(--amber);
+  color: var(--stage);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.4);
+  z-index: 20;
+}
+.fab:active { background: var(--amber-deep); }
+
 /* ---------- Escalas ---------- */
 .schedule-empty {
   text-align: center;

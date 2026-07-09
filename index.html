@@ -54,6 +54,46 @@
       <div id="externalSearch" class="hidden"></div>
     </section>
 
+    <!-- Nova cifra -->
+    <section id="view-add" class="view">
+      <div class="detail-header">
+        <button id="addBackBtn" class="back-btn">‹ Repertório</button>
+      </div>
+      <h2 class="detail-title">Nova cifra</h2>
+      <p class="conv-intro">
+        Preencha os dados e cole a cifra já convertida no campo abaixo. Ao salvar, ela aparece
+        na hora aqui no seu aparelho e você recebe o bloco de código pronto para colar em
+        <code>data.js</code> e subir para todo mundo ver.
+      </p>
+
+      <label class="field-label">Título</label>
+      <input id="addTitle" type="text" class="field-input" placeholder="Nome da música" />
+
+      <label class="field-label">Artista / referência</label>
+      <input id="addArtist" type="text" class="field-input" placeholder="Ex: Ministério Pampulha" />
+
+      <label class="field-label">Tom original</label>
+      <input id="addTom" type="text" class="field-input" placeholder="Ex: G" maxlength="3" />
+
+      <label class="field-label">Categorias</label>
+      <div class="chip-row" id="addChipRow"></div>
+
+      <label class="field-label">Link ou ID do YouTube (opcional)</label>
+      <input id="addYoutube" type="text" class="field-input" placeholder="Cole o link do vídeo" />
+
+      <label class="field-label">Cifra</label>
+      <textarea id="addCifraInput" class="conv-textarea" rows="10" placeholder="Cole aqui a cifra já convertida (ou escreva usando [Acorde]texto)"></textarea>
+
+      <button id="addSaveBtn" class="conv-btn">Salvar rascunho</button>
+      <p id="addError" class="gate-error"></p>
+
+      <div id="addCodeWrap" class="hidden">
+        <div class="conv-output-label">Salvo neste aparelho. Cole este bloco dentro do array SONGS em data.js para todo mundo ver:</div>
+        <textarea id="addCodeOutput" class="conv-textarea conv-output" rows="10" readonly></textarea>
+        <button id="addCopyCodeBtn" class="conv-btn conv-btn-ghost">Copiar código</button>
+      </div>
+    </section>
+
     <!-- Escalas -->
     <section id="view-escalas" class="view">
       <div id="scheduleList"></div>
@@ -73,6 +113,7 @@
         <div class="conv-output-label">Resultado (revise antes de usar; ajuste manualmente os cabeçalhos ## se precisar)</div>
         <textarea id="convOutput" class="conv-textarea conv-output" rows="10" readonly></textarea>
         <button id="convCopyBtn" class="conv-btn conv-btn-ghost">Copiar resultado</button>
+        <button id="convUseBtn" class="conv-btn">Usar em nova cifra</button>
       </div>
     </section>
 
@@ -111,6 +152,8 @@
       <div id="ytWrap" class="yt-wrap hidden"></div>
     </section>
   </main>
+
+  <button id="addSongFab" class="fab" title="Nova cifra">+</button>
 </div>
 
 <script src="data.js"></script>

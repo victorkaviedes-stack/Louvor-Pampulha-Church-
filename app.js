@@ -1,10 +1,13 @@
 // ============================================================
 // LÓGICA DO APP — normalmente você não precisa mexer aqui.
-// Para editar músicas, senha ou categorias, veja data.js.
+// Para editar músicas, senha ou categorias fixas, veja data.js.
+// Cifras adicionadas pelo botão "+" ficam salvas neste navegador
+// (localStorage) até você colar o código gerado em data.js.
 // ============================================================
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const FLAT_TO_SHARP = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#" };
+const DRAFTS_KEY = "pampulha_drafts";
 
 function noteIndex(note) {
   const norm = FLAT_TO_SHARP[note] || note;
@@ -72,12 +75,47 @@ function escapeHTML(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// ---------------- Rascunhos (localStorage) ----------------
+function loadDrafts() {
+  try {
+    const raw = localStorage.getItem(DRAFTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDrafts(drafts) {
+  try {
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  } catch {
+    // localStorage indisponível (modo privado, por exemplo): segue sem persistir
+  }
+}
+
+function addDraft(song) {
+  const drafts = loadDrafts();
+  const withId = { ...song, id: "draft-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) };
+  drafts.push(withId);
+  saveDrafts(drafts);
+  return withId;
+}
+
+function removeDraft(id) {
+  saveDrafts(loadDrafts().filter((d) => d.id !== id));
+}
+
+function getAllSongs() {
+  const built = SONGS.map((s, i) => ({ ...s, _source: "built", _key: "built-" + i }));
+  const drafts = loadDrafts().map((s) => ({ ...s, _source: "draft", _key: s.id }));
+  return built.concat(drafts);
+}
+
 // ---------------- Estado ----------------
 let state = {
-  currentSongIndex: null,
+  currentSong: null,
   transpose: 0,
   fontSize: 17,
-  autoscroll: false,
   autoscrollTimer: null,
   activeTag: null,
   searchTerm: ""
@@ -112,6 +150,7 @@ function showApp() {
   document.getElementById("churchName").textContent = CHURCH_NAME;
   document.getElementById("ministryName").textContent = MINISTRY_NAME;
   buildCategoryChips();
+  buildAddChips();
   renderSongList();
   renderSchedule();
 }
@@ -120,13 +159,21 @@ if (sessionStorage.getItem("pampulha_ok") === "1") {
   showApp();
 }
 
-// ---------------- Abas ----------------
+// ---------------- Navegação genérica ----------------
+function showView(id, opts) {
+  const keepTab = opts && opts.keepTab;
+  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if (!keepTab) {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+  }
+}
+
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
     btn.classList.add("active");
-    document.getElementById(btn.dataset.view).classList.add("active");
+    showView(btn.dataset.view, { keepTab: true });
   });
 });
 
@@ -156,9 +203,10 @@ function buildCategoryChips() {
 
 function renderSongList() {
   const list = document.getElementById("songList");
+  const externalWrap = document.getElementById("externalSearch");
   list.innerHTML = "";
 
-  const filtered = SONGS.map((s, i) => ({ ...s, _idx: i })).filter((s) => {
+  const filtered = getAllSongs().filter((s) => {
     const matchesTag = !state.activeTag || s.tags.includes(state.activeTag);
     const matchesSearch =
       !state.searchTerm ||
@@ -167,9 +215,8 @@ function renderSongList() {
     return matchesTag && matchesSearch;
   });
 
-  const externalWrap = document.getElementById("externalSearch");
   if (filtered.length === 0 && state.searchTerm) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-title">Não está no repertório ainda</div>Busque a cifra na fonte original e depois use o conversor para adicionar.</div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-title">Não está no repertório ainda</div>Busque a cifra na fonte original, converta e adicione pelo botão "+".</div>`;
     renderExternalSearchSuggestion(state.searchTerm);
     return;
   } else if (filtered.length === 0) {
@@ -189,11 +236,12 @@ function renderSongList() {
         <div class="song-card-meta">
           <span>${escapeHTML(song.artist)}</span>
           ${song.youtubeId ? "· ▶" : ""}
+          ${song._source === "draft" ? '<span class="draft-badge">Rascunho</span>' : ""}
         </div>
       </div>
       <span class="tom-badge">${song.tom}</span>
     `;
-    card.addEventListener("click", () => openSong(song._idx));
+    card.addEventListener("click", () => openSong(song));
     list.appendChild(card);
   });
 }
@@ -208,7 +256,7 @@ function renderExternalSearchSuggestion(term) {
         <a href="https://www.google.com/search?q=site:cifraclub.com.br+${q}" target="_blank" rel="noopener">Buscar no Cifra Club</a>
         <a href="https://www.google.com/search?q=site:cifras.com.br+${q}" target="_blank" rel="noopener">Buscar no Cifras.com.br</a>
       </div>
-      <p class="external-search-hint">Abre em outra aba. Depois de achar a cifra, copie o texto de lá e cole na aba "Converter" para transformar no formato deste app em poucos segundos.</p>
+      <p class="external-search-hint">Abre em outra aba. Depois de achar a cifra, copie o texto de lá, cole na aba "Converter" e use o botão "Usar em nova cifra".</p>
     </div>
   `;
   wrap.classList.remove("hidden");
@@ -294,6 +342,7 @@ const convInput = document.getElementById("convInput");
 const convOutput = document.getElementById("convOutput");
 const convOutputWrap = document.getElementById("convOutputWrap");
 const convCopyBtn = document.getElementById("convCopyBtn");
+const convUseBtn = document.getElementById("convUseBtn");
 
 convBtn.addEventListener("click", () => {
   const raw = convInput.value;
@@ -303,32 +352,148 @@ convBtn.addEventListener("click", () => {
 });
 
 convCopyBtn.addEventListener("click", async () => {
+  await copyToClipboard(convOutput.value);
+  flashCopied(convCopyBtn, "Copiar resultado");
+});
+
+convUseBtn.addEventListener("click", () => {
+  document.getElementById("addCifraInput").value = convOutput.value;
+  document.getElementById("addCodeWrap").classList.add("hidden");
+  showView("view-add");
+});
+
+async function copyToClipboard(text) {
   try {
-    await navigator.clipboard.writeText(convOutput.value);
-    convCopyBtn.textContent = "Copiado!";
-    setTimeout(() => (convCopyBtn.textContent = "Copiar resultado"), 1500);
+    await navigator.clipboard.writeText(text);
   } catch {
-    convOutput.select();
+    const tmp = document.createElement("textarea");
+    tmp.value = text;
+    document.body.appendChild(tmp);
+    tmp.select();
     document.execCommand("copy");
+    document.body.removeChild(tmp);
   }
+}
+
+function flashCopied(btn, restoreText) {
+  btn.textContent = "Copiado!";
+  setTimeout(() => (btn.textContent = restoreText), 1500);
+}
+
+// ---------------- Nova cifra (formulário) ----------------
+let addSelectedTags = [];
+
+function buildAddChips() {
+  const wrap = document.getElementById("addChipRow");
+  wrap.innerHTML = "";
+  CATEGORIES.forEach((cat) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = cat;
+    if (addSelectedTags.includes(cat)) chip.classList.add("active");
+    chip.addEventListener("click", () => {
+      addSelectedTags = addSelectedTags.includes(cat)
+        ? addSelectedTags.filter((t) => t !== cat)
+        : [...addSelectedTags, cat];
+      buildAddChips();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+function extractYoutubeId(input) {
+  if (!input) return "";
+  const trimmed = input.trim();
+  const patterns = [/[?&]v=([A-Za-z0-9_-]{6,})/, /youtu\.be\/([A-Za-z0-9_-]{6,})/, /embed\/([A-Za-z0-9_-]{6,})/];
+  for (const p of patterns) {
+    const m = trimmed.match(p);
+    if (m) return m[1];
+  }
+  return trimmed;
+}
+
+function songToCodeSnippet(song) {
+  const cifraEscaped = song.cifra.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+  return [
+    "  {",
+    `    title: ${JSON.stringify(song.title)},`,
+    `    artist: ${JSON.stringify(song.artist)},`,
+    `    tom: ${JSON.stringify(song.tom)},`,
+    `    tags: ${JSON.stringify(song.tags)},`,
+    `    youtubeId: ${JSON.stringify(song.youtubeId || "")},`,
+    "    cifra: `" + cifraEscaped + "`",
+    "  },"
+  ].join("\n");
+}
+
+document.getElementById("addSongFab").addEventListener("click", () => {
+  addSelectedTags = [];
+  document.getElementById("addTitle").value = "";
+  document.getElementById("addArtist").value = "";
+  document.getElementById("addTom").value = "";
+  document.getElementById("addYoutube").value = "";
+  document.getElementById("addCifraInput").value = "";
+  document.getElementById("addError").textContent = "";
+  document.getElementById("addCodeWrap").classList.add("hidden");
+  buildAddChips();
+  showView("view-add");
+});
+
+document.getElementById("addBackBtn").addEventListener("click", () => {
+  showView("view-repertorio");
+  document.querySelector('.tab-btn[data-view="view-repertorio"]').classList.add("active");
+});
+
+document.getElementById("addSaveBtn").addEventListener("click", () => {
+  const title = document.getElementById("addTitle").value.trim();
+  const artist = document.getElementById("addArtist").value.trim() || "Ministério Pampulha";
+  const tom = document.getElementById("addTom").value.trim();
+  const youtubeRaw = document.getElementById("addYoutube").value.trim();
+  const cifra = document.getElementById("addCifraInput").value;
+  const errorEl = document.getElementById("addError");
+
+  if (!title || !tom || !cifra.trim()) {
+    errorEl.textContent = "Preencha pelo menos título, tom e a cifra.";
+    return;
+  }
+  errorEl.textContent = "";
+
+  const song = {
+    title,
+    artist,
+    tom,
+    tags: [...addSelectedTags],
+    youtubeId: extractYoutubeId(youtubeRaw),
+    cifra
+  };
+
+  addDraft(song);
+  renderSongList();
+
+  const codeWrap = document.getElementById("addCodeWrap");
+  document.getElementById("addCodeOutput").value = songToCodeSnippet(song);
+  codeWrap.classList.remove("hidden");
+});
+
+document.getElementById("addCopyCodeBtn").addEventListener("click", async () => {
+  await copyToClipboard(document.getElementById("addCodeOutput").value);
+  flashCopied(document.getElementById("addCopyCodeBtn"), "Copiar código");
 });
 
 // ---------------- Detalhe da música ----------------
-function openSong(idx) {
-  state.currentSongIndex = idx;
+function openSong(song) {
+  state.currentSong = song;
   state.transpose = 0;
   state.fontSize = 17;
   stopAutoscroll();
-  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
-  document.getElementById("view-detail").classList.add("active");
+  showView("view-detail");
   renderDetail();
 }
 
 document.getElementById("backBtn").addEventListener("click", () => {
   stopAutoscroll();
-  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
-  document.getElementById("view-repertorio").classList.add("active");
+  showView("view-repertorio");
   document.querySelector('.tab-btn[data-view="view-repertorio"]').classList.add("active");
 });
 
@@ -340,7 +505,7 @@ function currentTom(song) {
 }
 
 function renderDetail() {
-  const song = SONGS[state.currentSongIndex];
+  const song = state.currentSong;
   document.getElementById("detailTitle").textContent = song.title;
   document.getElementById("detailArtist").textContent = song.artist;
   document.getElementById("tomValue").textContent = currentTom(song);
@@ -369,6 +534,31 @@ function renderDetail() {
     };
   } else {
     ytToggle.classList.add("hidden");
+  }
+
+  const existingNote = document.getElementById("draftDetailNote");
+  if (existingNote) existingNote.remove();
+  const existingDelete = document.getElementById("draftDeleteBtn");
+  if (existingDelete) existingDelete.remove();
+
+  if (song._source === "draft") {
+    const note = document.createElement("p");
+    note.id = "draftDetailNote";
+    note.className = "draft-note";
+    note.textContent = "Rascunho salvo só neste aparelho. Cole o código em data.js para todo mundo ver, depois remova o rascunho.";
+    document.getElementById("detailArtist").insertAdjacentElement("afterend", note);
+
+    const delBtn = document.createElement("button");
+    delBtn.id = "draftDeleteBtn";
+    delBtn.className = "danger-btn";
+    delBtn.textContent = "Remover rascunho";
+    delBtn.addEventListener("click", () => {
+      removeDraft(song.id);
+      showView("view-repertorio");
+      document.querySelector('.tab-btn[data-view="view-repertorio"]').classList.add("active");
+      renderSongList();
+    });
+    document.querySelector(".cifra-card").insertAdjacentElement("afterend", delBtn);
   }
 }
 
