@@ -128,9 +128,26 @@ const gateForm = document.getElementById("gateForm");
 const gateInput = document.getElementById("gateInput");
 const gateError = document.getElementById("gateError");
 
+function safeSessionGet(key) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionSet(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // storage bloqueado (ex: arquivo aberto direto sem servidor, ou modo restrito
+    // do navegador); segue sem persistir, a senha será pedida de novo ao recarregar
+  }
+}
+
 function tryEnter(pass) {
   if (pass === APP_PASSWORD) {
-    sessionStorage.setItem("pampulha_ok", "1");
+    safeSessionSet("pampulha_ok", "1");
     showApp();
   } else {
     gateError.textContent = "Senha incorreta. Confira com a coordenação do ministério.";
@@ -155,7 +172,7 @@ function showApp() {
   renderSchedule();
 }
 
-if (sessionStorage.getItem("pampulha_ok") === "1") {
+if (safeSessionGet("pampulha_ok") === "1") {
   showApp();
 }
 
