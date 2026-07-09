@@ -167,9 +167,17 @@ function renderSongList() {
     return matchesTag && matchesSearch;
   });
 
-  if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-title">Nada por aqui</div>Tente outro termo ou remova o filtro.</div>`;
+  const externalWrap = document.getElementById("externalSearch");
+  if (filtered.length === 0 && state.searchTerm) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-title">Não está no repertório ainda</div>Busque a cifra na fonte original e depois use o conversor para adicionar.</div>`;
+    renderExternalSearchSuggestion(state.searchTerm);
     return;
+  } else if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-title">Nada por aqui</div>Tente outro termo ou remova o filtro.</div>`;
+    externalWrap.classList.add("hidden");
+    return;
+  } else {
+    externalWrap.classList.add("hidden");
   }
 
   filtered.forEach((song) => {
@@ -189,6 +197,121 @@ function renderSongList() {
     list.appendChild(card);
   });
 }
+
+function renderExternalSearchSuggestion(term) {
+  const wrap = document.getElementById("externalSearch");
+  const q = encodeURIComponent(term + " cifra");
+  wrap.innerHTML = `
+    <div class="external-search">
+      <p class="external-search-title">Buscar "${escapeHTML(term)}" em outra fonte</p>
+      <div class="external-search-links">
+        <a href="https://www.google.com/search?q=site:cifraclub.com.br+${q}" target="_blank" rel="noopener">Buscar no Cifra Club</a>
+        <a href="https://www.google.com/search?q=site:cifras.com.br+${q}" target="_blank" rel="noopener">Buscar no Cifras.com.br</a>
+      </div>
+      <p class="external-search-hint">Abre em outra aba. Depois de achar a cifra, copie o texto de lá e cole na aba "Converter" para transformar no formato deste app em poucos segundos.</p>
+    </div>
+  `;
+  wrap.classList.remove("hidden");
+}
+
+// ---------------- Conversor de cifra colada ----------------
+const CHORD_TOKEN_RE = /^[A-G](#|b)?[A-Za-z0-9()\/#+\-]*$/;
+const SECTION_WORD_RE = /^(intro(du[çc][ãa]o)?|verso(\s*\d+)?|pr[ée][- ]?refr[ãa]o|refr[ãa]o|ponte|solo|final|coda|interl[úu]dio)\s*:?\s*\d*$/i;
+
+function isChordLikeToken(tok) {
+  return CHORD_TOKEN_RE.test(tok);
+}
+
+function isSectionHeaderLine(trimmed) {
+  return SECTION_WORD_RE.test(trimmed);
+}
+
+function isChordLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  const tokens = trimmed.split(/\s+/);
+  const chordLike = tokens.filter(isChordLikeToken);
+  return chordLike.length / tokens.length >= 0.8;
+}
+
+function mergeChordIntoLyric(chordLine, lyricLine) {
+  const inserts = [];
+  const re = /\S+/g;
+  let m;
+  while ((m = re.exec(chordLine))) {
+    if (isChordLikeToken(m[0])) inserts.push({ pos: m.index, chord: m[0] });
+  }
+  inserts.sort((a, b) => b.pos - a.pos);
+  const arr = lyricLine.split("");
+  for (const ins of inserts) {
+    const pos = Math.min(ins.pos, arr.length);
+    arr.splice(pos, 0, `[${ins.chord}]`);
+  }
+  return arr.join("");
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function convertPastedCifra(text) {
+  const lines = text.replace(/\r/g, "").split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed === "") {
+      out.push("");
+      continue;
+    }
+
+    if (isSectionHeaderLine(trimmed) && !isChordLine(trimmed)) {
+      out.push("## " + capitalize(trimmed.replace(/:$/, "")));
+      continue;
+    }
+
+    if (isChordLine(line)) {
+      const next = lines[i + 1];
+      const nextIsLyric = next !== undefined && next.trim() !== "" && !isChordLine(next) && !isSectionHeaderLine(next.trim());
+      if (nextIsLyric) {
+        out.push(mergeChordIntoLyric(line, next));
+        i++;
+      } else {
+        const chords = trimmed.split(/\s+/);
+        out.push(chords.map((c) => `[${c}]`).join(" "));
+      }
+      continue;
+    }
+
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
+const convBtn = document.getElementById("convBtn");
+const convInput = document.getElementById("convInput");
+const convOutput = document.getElementById("convOutput");
+const convOutputWrap = document.getElementById("convOutputWrap");
+const convCopyBtn = document.getElementById("convCopyBtn");
+
+convBtn.addEventListener("click", () => {
+  const raw = convInput.value;
+  if (!raw.trim()) return;
+  convOutput.value = convertPastedCifra(raw);
+  convOutputWrap.classList.remove("hidden");
+});
+
+convCopyBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(convOutput.value);
+    convCopyBtn.textContent = "Copiado!";
+    setTimeout(() => (convCopyBtn.textContent = "Copiar resultado"), 1500);
+  } catch {
+    convOutput.select();
+    document.execCommand("copy");
+  }
+});
 
 // ---------------- Detalhe da música ----------------
 function openSong(idx) {

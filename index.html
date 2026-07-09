@@ -39,6 +39,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-view="view-repertorio">Repertório</button>
       <button class="tab-btn" data-view="view-escalas">Escalas</button>
+      <button class="tab-btn" data-view="view-converter">Converter</button>
     </div>
   </header>
 
@@ -50,11 +51,29 @@
       </div>
       <div class="chip-row" id="chipRow"></div>
       <div id="songList"></div>
+      <div id="externalSearch" class="hidden"></div>
     </section>
 
     <!-- Escalas -->
     <section id="view-escalas" class="view">
       <div id="scheduleList"></div>
+    </section>
+
+    <!-- Converter -->
+    <section id="view-converter" class="view">
+      <p class="conv-intro">
+        Cole aqui o texto de uma cifra que você já esteja vendo legitimamente em qualquer site
+        (Cifra Club, Cifras.com.br, um caderno próprio etc.). O conversor identifica as linhas de
+        acorde e junta cada acorde à sílaba certa, no formato que este app usa. Depois é só copiar
+        o resultado e colar no campo <code>cifra</code> de uma música em <code>data.js</code>.
+      </p>
+      <textarea id="convInput" class="conv-textarea" rows="10" placeholder="Cole aqui a cifra copiada (linha de acordes em cima, linha de letra embaixo)..."></textarea>
+      <button id="convBtn" class="conv-btn">Converter</button>
+      <div id="convOutputWrap" class="hidden">
+        <div class="conv-output-label">Resultado (revise antes de usar; ajuste manualmente os cabeçalhos ## se precisar)</div>
+        <textarea id="convOutput" class="conv-textarea conv-output" rows="10" readonly></textarea>
+        <button id="convCopyBtn" class="conv-btn conv-btn-ghost">Copiar resultado</button>
+      </div>
     </section>
 
     <!-- Detalhe -->
