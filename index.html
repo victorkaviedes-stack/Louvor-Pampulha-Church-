@@ -50,6 +50,8 @@
         <input id="searchInput" type="text" placeholder="Buscar música ou artista" />
       </div>
       <div class="chip-row" id="chipRow"></div>
+      <p id="driveNotice" class="drive-notice hidden"></p>
+      <button id="driveRefreshBtn" class="drive-refresh-btn">↻ Atualizar do Google Drive</button>
       <div id="songList"></div>
       <div id="externalSearch" class="hidden"></div>
     </section>
@@ -114,6 +116,27 @@
         <textarea id="convOutput" class="conv-textarea conv-output" rows="10" readonly></textarea>
         <button id="convCopyBtn" class="conv-btn conv-btn-ghost">Copiar resultado</button>
         <button id="convUseBtn" class="conv-btn">Usar em nova cifra</button>
+
+        <div class="conv-doc-section">
+          <div class="conv-output-label">Ou monte o Documento inteiro para colar direto no Google Docs</div>
+          <label class="field-label">Tom</label>
+          <input id="convTom" type="text" class="field-input" placeholder="Ex: G" maxlength="3" />
+          <label class="field-label">Categorias</label>
+          <div class="chip-row" id="convChipRow"></div>
+          <label class="field-label">Link do YouTube (opcional)</label>
+          <input id="convYoutube" type="text" class="field-input" placeholder="Cole o link do vídeo" />
+          <label class="field-label">Pasta do artista no Drive</label>
+          <select id="convArtistSelect" class="field-input">
+            <option value="">Carregando pastas do Drive...</option>
+          </select>
+          <button id="convOpenFolderBtn" class="conv-btn conv-btn-ghost" disabled>Abrir pasta no Drive</button>
+          <button id="convGenDocBtn" class="conv-btn">Gerar conteúdo do Documento</button>
+          <div id="convDocOutputWrap" class="hidden">
+            <div class="conv-output-label">Copie tudo e cole como conteúdo de um novo Google Doc dentro da pasta do artista</div>
+            <textarea id="convDocOutput" class="conv-textarea conv-output" rows="12" readonly></textarea>
+            <button id="convCopyDocBtn" class="conv-btn conv-btn-ghost">Copiar conteúdo do Documento</button>
+          </div>
+        </div>
       </div>
     </section>
 

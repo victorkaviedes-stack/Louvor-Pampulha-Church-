@@ -1,4 +1,4 @@
-const CACHE = "pampulha-v4";
+const CACHE = "pampulha-v5";
 const SHELL = [
   "./",
   "./index.html",

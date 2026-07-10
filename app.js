@@ -108,7 +108,99 @@ function removeDraft(id) {
 function getAllSongs() {
   const built = SONGS.map((s, i) => ({ ...s, _source: "built", _key: "built-" + i }));
   const drafts = loadDrafts().map((s) => ({ ...s, _source: "draft", _key: s.id }));
-  return built.concat(drafts);
+  const drive = driveState.songs || [];
+  return built.concat(drive).concat(drafts);
+}
+
+// ---------------- Google Drive (cifras em Google Docs) ----------------
+let driveState = { loading: false, error: null, songs: [], artistFolders: [] };
+
+async function driveListChildren(folderId, mimeFilter) {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed = false and mimeType = '${mimeFilter}'`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&pageSize=200&key=${DRIVE_API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Drive: falha ao listar (" + res.status + ")");
+  const data = await res.json();
+  return data.files || [];
+}
+
+async function driveExportDocText(fileId) {
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain&key=${DRIVE_API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Drive: falha ao exportar documento (" + res.status + ")");
+  return await res.text();
+}
+
+const DOC_META_RE = /^(tom|categoria|tags|youtube|link|v[ií]deo)\s*:\s*(.*)$/i;
+
+function parseDriveDocContent(text) {
+  const lines = text.replace(/\r/g, "").split("\n");
+  const meta = { tom: "", tags: [], youtubeId: "" };
+  let i = 0;
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+    if (trimmed === "") {
+      i++;
+      continue;
+    }
+    const m = trimmed.match(DOC_META_RE);
+    if (!m) break;
+    const key = m[1].toLowerCase();
+    const val = m[2].trim();
+    if (key === "tom") meta.tom = val;
+    if (key === "categoria" || key === "tags") meta.tags = val.split(",").map((s) => s.trim()).filter(Boolean);
+    if (key === "youtube" || key === "link" || key.startsWith("v")) meta.youtubeId = extractYoutubeId(val);
+    i++;
+  }
+  while (i < lines.length && lines[i].trim() === "") i++;
+  meta.cifra = convertPastedCifra(lines.slice(i).join("\n"));
+  return meta;
+}
+
+async function fetchDriveRepertorio() {
+  const artistFolders = await driveListChildren(DRIVE_FOLDER_ID, "application/vnd.google-apps.folder");
+  driveState.artistFolders = artistFolders;
+
+  const perArtist = await Promise.all(
+    artistFolders.map(async (folder) => {
+      const docs = await driveListChildren(folder.id, "application/vnd.google-apps.document");
+      const songs = await Promise.all(
+        docs.map(async (doc) => {
+          const text = await driveExportDocText(doc.id);
+          const parsed = parseDriveDocContent(text);
+          return {
+            title: doc.name,
+            artist: folder.name,
+            tom: parsed.tom || "C",
+            tags: parsed.tags,
+            youtubeId: parsed.youtubeId,
+            cifra: parsed.cifra,
+            _source: "drive",
+            _key: "drive-" + doc.id
+          };
+        })
+      );
+      return songs;
+    })
+  );
+
+  return perArtist.flat();
+}
+
+async function loadDriveRepertorio() {
+  if (!DRIVE_ENABLED || !DRIVE_API_KEY || DRIVE_API_KEY.startsWith("COLE_AQUI")) return;
+  driveState.loading = true;
+  driveState.error = null;
+  renderSongList();
+  try {
+    driveState.songs = await fetchDriveRepertorio();
+  } catch (err) {
+    driveState.error = err.message || "Erro desconhecido ao buscar do Google Drive.";
+  } finally {
+    driveState.loading = false;
+    renderSongList();
+    buildArtistFolderOptions();
+  }
 }
 
 // ---------------- Estado ----------------
@@ -170,6 +262,7 @@ function showApp() {
   buildAddChips();
   renderSongList();
   renderSchedule();
+  loadDriveRepertorio();
 }
 
 if (safeSessionGet("pampulha_ok") === "1") {
@@ -222,6 +315,18 @@ function renderSongList() {
   const list = document.getElementById("songList");
   const externalWrap = document.getElementById("externalSearch");
   list.innerHTML = "";
+
+  const driveNotice = document.getElementById("driveNotice");
+  if (driveState.loading) {
+    driveNotice.textContent = "Carregando repertório do Google Drive...";
+    driveNotice.classList.remove("hidden", "drive-notice-error");
+  } else if (driveState.error) {
+    driveNotice.textContent = "Não consegui carregar do Google Drive (" + driveState.error + "). Mostrando o repertório local.";
+    driveNotice.classList.remove("hidden");
+    driveNotice.classList.add("drive-notice-error");
+  } else {
+    driveNotice.classList.add("hidden");
+  }
 
   const filtered = getAllSongs().filter((s) => {
     const matchesTag = !state.activeTag || s.tags.includes(state.activeTag);
@@ -379,6 +484,67 @@ convUseBtn.addEventListener("click", () => {
   showView("view-add");
 });
 
+let convSelectedTags = [];
+
+function buildConvChips() {
+  const wrap = document.getElementById("convChipRow");
+  wrap.innerHTML = "";
+  CATEGORIES.forEach((cat) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = cat;
+    if (convSelectedTags.includes(cat)) chip.classList.add("active");
+    chip.addEventListener("click", () => {
+      convSelectedTags = convSelectedTags.includes(cat)
+        ? convSelectedTags.filter((t) => t !== cat)
+        : [...convSelectedTags, cat];
+      buildConvChips();
+    });
+    wrap.appendChild(chip);
+  });
+}
+buildConvChips();
+
+function buildArtistFolderOptions() {
+  const select = document.getElementById("convArtistSelect");
+  const folders = driveState.artistFolders || [];
+  if (folders.length === 0) {
+    select.innerHTML = '<option value="">Nenhuma pasta encontrada ainda</option>';
+    document.getElementById("convOpenFolderBtn").disabled = true;
+    return;
+  }
+  select.innerHTML = folders
+    .map((f) => `<option value="${f.id}">${escapeHTML(f.name)}</option>`)
+    .join("");
+  document.getElementById("convOpenFolderBtn").disabled = false;
+}
+
+document.getElementById("convOpenFolderBtn").addEventListener("click", () => {
+  const id = document.getElementById("convArtistSelect").value;
+  if (!id) return;
+  window.open("https://drive.google.com/drive/folders/" + id, "_blank", "noopener");
+});
+
+document.getElementById("convGenDocBtn").addEventListener("click", () => {
+  const body = convOutput.value;
+  if (!body || !body.trim()) return;
+  const tom = document.getElementById("convTom").value.trim();
+  const youtube = document.getElementById("convYoutube").value.trim();
+  const headerLines = [];
+  if (tom) headerLines.push("Tom: " + tom);
+  if (convSelectedTags.length) headerLines.push("Categoria: " + convSelectedTags.join(", "));
+  if (youtube) headerLines.push("YouTube: " + youtube);
+  const fullDoc = headerLines.length ? headerLines.join("\n") + "\n\n" + body : body;
+  document.getElementById("convDocOutput").value = fullDoc;
+  document.getElementById("convDocOutputWrap").classList.remove("hidden");
+});
+
+document.getElementById("convCopyDocBtn").addEventListener("click", async () => {
+  await copyToClipboard(document.getElementById("convDocOutput").value);
+  flashCopied(document.getElementById("convCopyDocBtn"), "Copiar conteúdo do Documento");
+});
+
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -443,6 +609,10 @@ function songToCodeSnippet(song) {
     "  },"
   ].join("\n");
 }
+
+document.getElementById("driveRefreshBtn").addEventListener("click", () => {
+  loadDriveRepertorio();
+});
 
 document.getElementById("addSongFab").addEventListener("click", () => {
   addSelectedTags = [];

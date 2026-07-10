@@ -434,6 +434,32 @@ main { flex: 1; padding: 18px 20px 40px; }
 }
 .yt-wrap iframe { width: 100%; height: 100%; border: 0; }
 
+.drive-notice {
+  font-size: 12.5px;
+  color: var(--amber);
+  background: rgba(232,163,61,0.08);
+  border: 1px solid rgba(232,163,61,0.2);
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+}
+.drive-notice.drive-notice-error {
+  color: #E8846B;
+  background: rgba(232,132,107,0.08);
+  border-color: rgba(232,132,107,0.25);
+}
+
+.drive-refresh-btn {
+  display: block;
+  margin: 0 0 14px auto;
+  background: none;
+  border: none;
+  color: var(--muted-on-stage);
+  font-size: 12px;
+  padding: 4px 0;
+}
+.drive-refresh-btn:active { color: var(--amber); }
+
 /* ---------- Busca externa (sem conteúdo copiado, só link) ---------- */
 .external-search {
   margin-top: 4px;
@@ -472,6 +498,16 @@ main { flex: 1; padding: 18px 20px 40px; }
   color: var(--muted-on-stage);
   margin: 12px 0 0;
   line-height: 1.5;
+}
+
+.conv-doc-section {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.conv-btn:disabled {
+  opacity: 0.45;
 }
 
 /* ---------- Converter ---------- */
