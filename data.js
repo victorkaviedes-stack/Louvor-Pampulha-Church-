@@ -8,7 +8,7 @@
 // esta senha.
 const APP_PASSWORD = "pampulha";
 
-const CHURCH_NAME = "Igreja Pampulha";
+const CHURCH_NAME = "Pampulha Church";
 const MINISTRY_NAME = "Ministério de Louvor";
 
 // Categorias usadas para filtrar o repertório.
