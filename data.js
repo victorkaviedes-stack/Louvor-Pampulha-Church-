@@ -6,7 +6,7 @@
 // Aviso: isso NÃO é segurança de verdade, é só uma barreira contra acesso
 // casual. Qualquer pessoa que abrir o código-fonte da página consegue ler
 // esta senha.
-const APP_PASSWORD = "pampulha2026";
+const APP_PASSWORD = "pampulha";
 
 const CHURCH_NAME = "Igreja Pampulha";
 const MINISTRY_NAME = "Ministério de Louvor";
