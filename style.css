@@ -614,6 +614,18 @@ main { flex: 1; padding: 18px 20px 40px; }
   margin-bottom: 16px;
 }
 
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.detail-actions .conv-btn,
+.detail-actions .danger-btn {
+  margin-top: 0;
+  width: auto;
+  flex: 1;
+}
+
 .danger-btn {
   width: 100%;
   margin-top: 10px;

@@ -61,7 +61,7 @@
       <div class="detail-header">
         <button id="addBackBtn" class="back-btn">‹ Repertório</button>
       </div>
-      <h2 class="detail-title">Nova cifra</h2>
+      <h2 class="detail-title" id="addFormTitle">Nova cifra</h2>
       <p class="conv-intro">
         Preencha os dados e cole a cifra já convertida no campo abaixo. Ao salvar, ela aparece
         na hora aqui no seu aparelho e você recebe o bloco de código pronto para colar em
@@ -90,7 +90,7 @@
       <p id="addError" class="gate-error"></p>
 
       <div id="addCodeWrap" class="hidden">
-        <div class="conv-output-label">Salvo neste aparelho. Cole este bloco dentro do array SONGS em data.js para todo mundo ver:</div>
+        <div class="conv-output-label" id="addCodeLabel">Salvo neste aparelho. Cole este bloco dentro do array SONGS em data.js para todo mundo ver:</div>
         <textarea id="addCodeOutput" class="conv-textarea conv-output" rows="10" readonly></textarea>
         <button id="addCopyCodeBtn" class="conv-btn conv-btn-ghost">Copiar código</button>
       </div>

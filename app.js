@@ -105,6 +105,15 @@ function removeDraft(id) {
   saveDrafts(loadDrafts().filter((d) => d.id !== id));
 }
 
+function updateDraft(id, song) {
+  const drafts = loadDrafts();
+  const idx = drafts.findIndex((d) => d.id === id);
+  if (idx === -1) return null;
+  drafts[idx] = { ...song, id };
+  saveDrafts(drafts);
+  return drafts[idx];
+}
+
 function getAllSongs() {
   const built = SONGS.map((s, i) => ({ ...s, _source: "built", _key: "built-" + i }));
   const drafts = loadDrafts().map((s) => ({ ...s, _source: "draft", _key: s.id }));
@@ -176,6 +185,7 @@ async function fetchDriveRepertorio() {
             youtubeId: parsed.youtubeId,
             cifra: parsed.cifra,
             _source: "drive",
+            _docId: doc.id,
             _key: "drive-" + doc.id
           };
         })
@@ -316,6 +326,15 @@ function renderSongList() {
   const externalWrap = document.getElementById("externalSearch");
   list.innerHTML = "";
 
+  try {
+    renderSongListInner(list, externalWrap);
+  } catch (err) {
+    console.error("Erro ao renderizar a lista:", err);
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-title" style="color:#E8846B">Deu erro ao montar a lista</div>${escapeHTML(err.message || String(err))}<br/>Abra o console do navegador (F12) para ver o detalhe completo.</div>`;
+  }
+}
+
+function renderSongListInner(list, externalWrap) {
   const driveNotice = document.getElementById("driveNotice");
   if (driveState.loading) {
     driveNotice.textContent = "Carregando repertório do Google Drive...";
@@ -565,6 +584,23 @@ function flashCopied(btn, restoreText) {
 
 // ---------------- Nova cifra (formulário) ----------------
 let addSelectedTags = [];
+let editingDraftId = null;
+
+function openAddForm(prefill) {
+  editingDraftId = prefill ? prefill.id : null;
+  addSelectedTags = prefill ? [...prefill.tags] : [];
+  document.getElementById("addFormTitle").textContent = prefill ? "Editar rascunho" : "Nova cifra";
+  document.getElementById("addSaveBtn").textContent = prefill ? "Salvar alterações" : "Salvar rascunho";
+  document.getElementById("addTitle").value = prefill ? prefill.title : "";
+  document.getElementById("addArtist").value = prefill ? prefill.artist : "";
+  document.getElementById("addTom").value = prefill ? prefill.tom : "";
+  document.getElementById("addYoutube").value = prefill ? prefill.youtubeId : "";
+  document.getElementById("addCifraInput").value = prefill ? prefill.cifra : "";
+  document.getElementById("addError").textContent = "";
+  document.getElementById("addCodeWrap").classList.add("hidden");
+  buildAddChips();
+  showView("view-add");
+}
 
 function buildAddChips() {
   const wrap = document.getElementById("addChipRow");
@@ -615,16 +651,7 @@ document.getElementById("driveRefreshBtn").addEventListener("click", () => {
 });
 
 document.getElementById("addSongFab").addEventListener("click", () => {
-  addSelectedTags = [];
-  document.getElementById("addTitle").value = "";
-  document.getElementById("addArtist").value = "";
-  document.getElementById("addTom").value = "";
-  document.getElementById("addYoutube").value = "";
-  document.getElementById("addCifraInput").value = "";
-  document.getElementById("addError").textContent = "";
-  document.getElementById("addCodeWrap").classList.add("hidden");
-  buildAddChips();
-  showView("view-add");
+  openAddForm(null);
 });
 
 document.getElementById("addBackBtn").addEventListener("click", () => {
@@ -655,11 +682,19 @@ document.getElementById("addSaveBtn").addEventListener("click", () => {
     cifra
   };
 
-  addDraft(song);
+  let saved;
+  if (editingDraftId) {
+    saved = updateDraft(editingDraftId, song);
+  } else {
+    saved = addDraft(song);
+  }
   renderSongList();
 
   const codeWrap = document.getElementById("addCodeWrap");
-  document.getElementById("addCodeOutput").value = songToCodeSnippet(song);
+  document.getElementById("addCodeLabel").textContent = editingDraftId
+    ? "Atualizado neste aparelho. Cole este bloco no lugar da versão antiga em data.js:"
+    : "Salvo neste aparelho. Cole este bloco dentro do array SONGS em data.js para todo mundo ver:";
+  document.getElementById("addCodeOutput").value = songToCodeSnippet(saved || song);
   codeWrap.classList.remove("hidden");
 });
 
@@ -725,27 +760,54 @@ function renderDetail() {
 
   const existingNote = document.getElementById("draftDetailNote");
   if (existingNote) existingNote.remove();
-  const existingDelete = document.getElementById("draftDeleteBtn");
-  if (existingDelete) existingDelete.remove();
+  const existingActions = document.getElementById("detailActions");
+  if (existingActions) existingActions.remove();
+
+  const actions = document.createElement("div");
+  actions.id = "detailActions";
+  actions.className = "detail-actions";
 
   if (song._source === "draft") {
     const note = document.createElement("p");
     note.id = "draftDetailNote";
     note.className = "draft-note";
-    note.textContent = "Rascunho salvo só neste aparelho. Cole o código em data.js para todo mundo ver, depois remova o rascunho.";
+    note.textContent = "Rascunho salvo só neste aparelho. Cole o código em data.js para todo mundo ver, ou edite/exclua abaixo.";
     document.getElementById("detailArtist").insertAdjacentElement("afterend", note);
 
+    const editBtn = document.createElement("button");
+    editBtn.className = "conv-btn conv-btn-ghost";
+    editBtn.textContent = "✎ Editar rascunho";
+    editBtn.addEventListener("click", () => openAddForm(song));
+    actions.appendChild(editBtn);
+
     const delBtn = document.createElement("button");
-    delBtn.id = "draftDeleteBtn";
     delBtn.className = "danger-btn";
-    delBtn.textContent = "Remover rascunho";
+    delBtn.textContent = "Excluir rascunho";
     delBtn.addEventListener("click", () => {
       removeDraft(song.id);
       showView("view-repertorio");
       document.querySelector('.tab-btn[data-view="view-repertorio"]').classList.add("active");
       renderSongList();
     });
-    document.querySelector(".cifra-card").insertAdjacentElement("afterend", delBtn);
+    actions.appendChild(delBtn);
+  } else if (song._source === "drive" && song._docId) {
+    const note = document.createElement("p");
+    note.id = "draftDetailNote";
+    note.className = "draft-note";
+    note.textContent = "Esta cifra vem de um Google Doc. Editar ou excluir é feito lá; o app só reflete o que está no Drive.";
+    document.getElementById("detailArtist").insertAdjacentElement("afterend", note);
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "conv-btn conv-btn-ghost";
+    editBtn.textContent = "✎ Editar no Google Docs";
+    editBtn.addEventListener("click", () => {
+      window.open("https://docs.google.com/document/d/" + song._docId + "/edit", "_blank", "noopener");
+    });
+    actions.appendChild(editBtn);
+  }
+
+  if (actions.childNodes.length > 0) {
+    document.querySelector(".cifra-card").insertAdjacentElement("afterend", actions);
   }
 }
 
@@ -827,5 +889,11 @@ document.getElementById("installBtn").addEventListener("click", async () => {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+  let refreshedOnce = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshedOnce) return;
+    refreshedOnce = true;
+    window.location.reload();
   });
 }
