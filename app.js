@@ -542,7 +542,7 @@ function buildArtistFolderOptions() {
 document.getElementById("convOpenFolderBtn").addEventListener("click", () => {
   const id = document.getElementById("convArtistSelect").value;
   if (!id) return;
-  window.open("https://drive.google.com/drive/folders/" + id, "_blank", "noopener");
+  window.open("https://drive.google.com/drive/folders/1Es91NiCuek-Lig-nAno502K__ehG4Jn2?usp=drive_link");
 });
 
 document.getElementById("convGenDocBtn").addEventListener("click", () => {
